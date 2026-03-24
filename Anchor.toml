@@ -1,0 +1,28 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+condition-oracle = "AXUUG9hFsbPGsFnyKw7DSdqhsPXhTPZd68mkp51qMLMb"
+escrow-core = "Aeme3QvXEKEip5jNkfZTrjpTxXognZXvw2jPb7HuGMte"
+multisig-guard = "BZgskKEwBsjoAYrW2yRoah4Aat2jKUgThXB8g6RJMoKx"
+
+[programs.devnet]
+escrow_core = "Aeme3QvXEKEip5jNkfZTrjpTxXognZXvw2jPb7HuGMte"
+condition_oracle = "BZgskKEwBsjoAYrW2yRoah4Aat2jKUgThXB8g6RJMoKx"
+multisig_guard = "AXUUG9hFsbPGsFnyKw7DSdqhsPXhTPZd68mkp51qMLMb"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""
+
+[hooks]
