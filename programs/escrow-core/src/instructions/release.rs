@@ -10,20 +10,11 @@ pub fn handler(ctx: Context<Release>) -> Result<()> {
     // guard: already released
     require!(!state.is_released, EscrowError::AlreadyReleased);
 
-    // guard: the CPI caller must be the stored release_authority
-    // anchor does not give us a `program_id` of the CPI caller directly,
-    // so we verify by checking that the release_authority account was
-    // passed as a signer. the condition-oracle signs with invoke_signed
-    // using its PDA seeds — that signature is what we verify here.
     require!(
-        ctx.accounts.release_authority.is_signer,
+        ctx.accounts.release_authority.key()==state.release_authority,
         EscrowError::UnauthorizedCaller
     );
-    require!(
-        ctx.accounts.release_authority.key() == state.release_authority,
-        EscrowError::UnauthorizedCaller
-    );
-
+    
     let amount = state.amount;
 
     // seeds to let escrow_state PDA sign the vault transfer

@@ -5,6 +5,14 @@
     "lib": ["es2015"],
     "module": "commonjs",
     "target": "es6",
-    "esModuleInterop": true
-  }
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "allowJs": true,
+    "outDir": "dist",
+    "paths": {
+      "@coral-xyz/anchor": ["./node_modules/@coral-xyz/anchor"]
+    }
+  },
+  "include": ["tests/**/*", "target/types/**/*"]
 }

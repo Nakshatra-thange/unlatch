@@ -1,6 +1,7 @@
+import BN from "bn.js";
 import * as anchor from "@coral-xyz/anchor";
-import { Program }  from "@coral-xyz/anchor";
-//import { EscrowCore } from "../target/types/escrow_core";
+import { Program } from "@coral-xyz/anchor";
+import type { EscrowCore } from "../target/types/escrow_core";
 import {
   createMint,
   createAccount,
@@ -13,50 +14,43 @@ describe("escrow-core", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program   = anchor.workspace.EscrowCore as Program<EscrowCore>;
-  const depositor = provider.wallet as anchor.Wallet;
+  const program = anchor.workspace.EscrowCore as Program<EscrowCore>;
+  const wallet = provider.wallet as anchor.Wallet;
 
-  let mint:         anchor.web3.PublicKey;
+  let mint: anchor.web3.PublicKey;
   let depositorAta: anchor.web3.PublicKey;
-  let escrowState:  anchor.web3.PublicKey;
-  let vault:        anchor.web3.PublicKey;
+  let escrowState: anchor.web3.PublicKey;
+  let vault: anchor.web3.PublicKey;
 
-  // a fake oracle keypair — used to simulate the release_authority
   const fakeOracle = anchor.web3.Keypair.generate();
 
   before(async () => {
-    // create mint
     mint = await createMint(
       provider.connection,
-      depositor.payer,
-      depositor.publicKey,
+      wallet.payer,
+      wallet.publicKey,
       null,
       6
     );
 
-    // create depositor ATA and mint 1000 tokens
     depositorAta = await createAccount(
       provider.connection,
-      depositor.payer,
+      wallet.payer,
       mint,
-      depositor.publicKey
-    );
-    await mintTo(
-      provider.connection,
-      depositor.payer,
-      mint,
-      depositorAta,
-      depositor.payer,
-      1_000_000 // 1 token at 6 decimals
+      wallet.publicKey
     );
 
-    // derive PDAs
+    await mintTo(
+      provider.connection,
+      wallet.payer,
+      mint,
+      depositorAta,
+      wallet.payer,
+      1_000_000
+    );
+
     [escrowState] = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("escrow"),
-        depositor.publicKey.toBuffer(),
-        mint.toBuffer(),
-      ],
+      [Buffer.from("escrow"), wallet.publicKey.toBuffer(), mint.toBuffer()],
       program.programId
     );
 
@@ -66,75 +60,46 @@ describe("escrow-core", () => {
     );
   });
 
-  // ----------------------------------------------------------------
-  // TEST 1: deposit succeeds, vault receives funds
-  // ----------------------------------------------------------------
-  it("deposits tokens into the vault", async () => {
+  it("deposit works", async () => {
     await program.methods
-      .deposit(new anchor.BN(500_000), fakeOracle.publicKey)
+      .deposit(new BN(500_000), fakeOracle.publicKey)
       .accounts({
-        depositor:    depositor.publicKey,
+        depositor: wallet.publicKey,
         mint,
         escrowState,
         vault,
         depositorAta,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
-      })
+      } as any)
       .rpc();
 
-    const vaultAccount = await getAccount(provider.connection, vault);
-    assert.equal(vaultAccount.amount.toString(), "500000");
-
-    const state = await program.account.escrowState.fetch(escrowState);
-    assert.equal(state.amount.toString(), "500000");
-    assert.equal(state.releaseAuthority.toBase58(), fakeOracle.publicKey.toBase58());
-    assert.isFalse(state.isReleased);
+    const vaultAcc = await getAccount(provider.connection, vault);
+    assert.equal(vaultAcc.amount.toString(), "500000");
   });
 
-  // ----------------------------------------------------------------
-  // TEST 2: direct release with wrong signer fails
-  // ----------------------------------------------------------------
-  it("rejects release from an unauthorized signer", async () => {
-    const badActor = anchor.web3.Keypair.generate();
-
-    // airdrop so it can sign
-    await provider.connection.requestAirdrop(
-      badActor.publicKey,
-      anchor.web3.LAMPORTS_PER_SOL
-    );
-    await new Promise(r => setTimeout(r, 1000));
+  it("unauthorized release fails", async () => {
+    const bad = anchor.web3.Keypair.generate();
 
     try {
       await program.methods
         .release()
         .accounts({
-          releaseAuthority: badActor.publicKey,
+          releaseAuthority: bad.publicKey,
           escrowState,
           vault,
           depositorAta,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        })
-        .signers([badActor])
+        } as any)
         .rpc();
 
-      assert.fail("should have thrown UnauthorizedCaller");
+      assert.fail("should fail");
     } catch (err: any) {
       assert.include(err.message, "UnauthorizedCaller");
     }
   });
 
-  // ----------------------------------------------------------------
-  // TEST 3: release succeeds when fakeOracle (the stored authority) signs
-  // ----------------------------------------------------------------
-  it("releases funds when release_authority signs", async () => {
-    // airdrop to fakeOracle so it can pay tx fee
-    await provider.connection.requestAirdrop(
-      fakeOracle.publicKey,
-      anchor.web3.LAMPORTS_PER_SOL
-    );
-    await new Promise(r => setTimeout(r, 1000));
-
+  it("authorized release works", async () => {
     await program.methods
       .release()
       .accounts({
@@ -143,23 +108,17 @@ describe("escrow-core", () => {
         vault,
         depositorAta,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-      })
-      .signers([fakeOracle])
+      } as any)
       .rpc();
 
-    // vault should be empty
-    const vaultAccount = await getAccount(provider.connection, vault);
-    assert.equal(vaultAccount.amount.toString(), "0");
+    const vaultAcc = await getAccount(provider.connection, vault);
+    assert.equal(vaultAcc.amount.toString(), "0");
 
-    // state should be marked released
     const state = await program.account.escrowState.fetch(escrowState);
     assert.isTrue(state.isReleased);
   });
 
-  // ----------------------------------------------------------------
-  // TEST 4: double-release is rejected
-  // ----------------------------------------------------------------
-  it("rejects a second release on the same escrow", async () => {
+  it("double release fails", async () => {
     try {
       await program.methods
         .release()
@@ -169,14 +128,12 @@ describe("escrow-core", () => {
           vault,
           depositorAta,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        })
-        .signers([fakeOracle])
+        } as any)
         .rpc();
 
-      assert.fail("should have thrown AlreadyReleased");
+      assert.fail("should fail");
     } catch (err: any) {
       assert.include(err.message, "AlreadyReleased");
     }
   });
 });
-

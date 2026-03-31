@@ -5,15 +5,15 @@ package_manager = "yarn"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-condition-oracle = "AXUUG9hFsbPGsFnyKw7DSdqhsPXhTPZd68mkp51qMLMb"
-escrow-core = "Aeme3QvXEKEip5jNkfZTrjpTxXognZXvw2jPb7HuGMte"
-multisig-guard = "BZgskKEwBsjoAYrW2yRoah4Aat2jKUgThXB8g6RJMoKx"
-
 [programs.devnet]
-escrow_core = "Aeme3QvXEKEip5jNkfZTrjpTxXognZXvw2jPb7HuGMte"
 condition_oracle = "BZgskKEwBsjoAYrW2yRoah4Aat2jKUgThXB8g6RJMoKx"
+escrow_core = "Aeme3QvXEKEip5jNkfZTrjpTxXognZXvw2jPb7HuGMte"
 multisig_guard = "AXUUG9hFsbPGsFnyKw7DSdqhsPXhTPZd68mkp51qMLMb"
+
+[programs.localnet]
+condition_oracle = "3Rqj1SfSjQ2P2K4VVjmFwTzmJxMK4FAwi4o7J9uHxk9E"
+escrow_core = "71e8gkv5oeQPmqfzH1686HDucs1Aq3xvJ7yjvQW9RZ9L"
+multisig_guard = "CzbLXoXA4SLRDtdpPPyiGDHDFACzLTAty1ioYvE1nHDc"
 
 [registry]
 url = "https://api.apr.dev"
@@ -23,6 +23,6 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""
+test = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
 [hooks]

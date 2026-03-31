@@ -11,7 +11,7 @@ pub use state::*;
 
 use state::{ConditionConfig, ConditionType};
 
-declare_id!("52JFKJBs4LAyD5tW2Beoez91wd8554zReXnxbuWAEdwt");
+declare_id!("3Rqj1SfSjQ2P2K4VVjmFwTzmJxMK4FAwi4o7J9uHxk9E");
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct InitConditionParams {
@@ -48,7 +48,7 @@ pub struct InitializeCondition<'info> {
         seeds = [b"release", condition_config.key().as_ref()],
         bump,
     )]
-    pub release_authority: AccountInfo<'info>,
+    pub release_authority: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
