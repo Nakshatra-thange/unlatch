@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+use anchor_spl::token::{self, Transfer};
 
-use crate::state::EscrowState;
+use crate::Release;
 use crate::errors::EscrowError;
 
 pub fn handler(ctx: Context<Release>) -> Result<()> {
@@ -55,42 +55,4 @@ pub fn handler(ctx: Context<Release>) -> Result<()> {
     ctx.accounts.escrow_state.is_released = true;
 
     Ok(())
-}
-
-#[derive(Accounts)]
-pub struct Release<'info> {
-    /// this is the oracle's PDA — it must be a signer
-    /// no human wallet should ever be able to satisfy this
-    /// CHECK: verified manually against escrow_state.release_authority
-    pub release_authority: AccountInfo<'info>,
-
-    #[account(
-        mut,
-        seeds = [
-            b"escrow",
-            escrow_state.depositor.as_ref(),
-            escrow_state.mint.as_ref(),
-        ],
-        bump  = escrow_state.bump,
-    )]
-    pub escrow_state: Account<'info, EscrowState>,
-
-    #[account(
-        mut,
-        seeds = [b"vault", escrow_state.key().as_ref()],
-        bump  = escrow_state.vault_bump,
-        token::mint      = escrow_state.mint,
-        token::authority = escrow_state,
-    )]
-    pub vault: Account<'info, TokenAccount>,
-
-    /// depositor's ATA receives the funds back
-    #[account(
-        mut,
-        constraint = depositor_ata.owner == escrow_state.depositor,
-        constraint = depositor_ata.mint  == escrow_state.mint,
-    )]
-    pub depositor_ata: Account<'info, TokenAccount>,
-
-    pub token_program: Program<'info, Token>,
 }

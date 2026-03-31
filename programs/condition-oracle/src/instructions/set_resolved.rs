@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
-use crate::state::{ConditionConfig, ConditionType};
-use crate::errors::OracleError;
+use crate::{SetResolved, ConditionType, ConditionConfig};
+use crate::error::OracleError;
 
 pub fn handler(ctx: Context<SetResolved>) -> Result<()> {
     let config = &mut ctx.accounts.condition_config;
@@ -24,16 +24,4 @@ pub fn handler(ctx: Context<SetResolved>) -> Result<()> {
     msg!("condition resolved — ready to release");
 
     Ok(())
-}
-
-#[derive(Accounts)]
-pub struct SetResolved<'info> {
-    pub resolve_authority: Signer<'info>,
-
-    #[account(
-        mut,
-        seeds = [b"condition", condition_config.escrow_state.as_ref()],
-        bump  = condition_config.bump,
-    )]
-    pub condition_config: Account<'info, ConditionConfig>,
 }

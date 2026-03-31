@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program }  from "@coral-xyz/anchor";
-import { EscrowCore } from "../target/types/escrow_core";
+//import { EscrowCore } from "../target/types/escrow_core";
 import {
   createMint,
   createAccount,

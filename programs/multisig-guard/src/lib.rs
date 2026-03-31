@@ -6,16 +6,17 @@ pub mod state;
 use anchor_lang::prelude::*;
 
 pub use constants::*;
-pub use instructions::*;
-pub use state::*;
 
-declare_id!("BZgskKEwBsjoAYrW2yRoah4Aat2jKUgThXB8g6RJMoKx");
+declare_id!("8WGXbgEDLDsM3viGNeiAtriJdVUq8y5Lp3NqVorJZH79");
+
+#[derive(Accounts)]
+pub struct Initialize {}
 
 #[program]
 pub mod multisig_guard {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        initialize::handler(ctx)
+        instructions::initialize::handler(ctx)
     }
 }
