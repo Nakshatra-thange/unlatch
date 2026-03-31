@@ -6,7 +6,9 @@ use anchor_lang::solana_program::program::invoke;
 use crate::state::GuardState;
 use crate::errors::GuardError;
 
-pub fn execute(ctx: Context<Execute>) -> Result<()> {
+
+
+pub fn handler(ctx: Context<Execute>) -> Result<()> {
     let guard = &mut ctx.accounts.guard_state;
 
     require!(!guard.is_executed, GuardError::AlreadyExecuted);
@@ -22,11 +24,10 @@ pub fn execute(ctx: Context<Execute>) -> Result<()> {
     // guard does not need to know about escrow-core at all.
     // this is the composability payoff.
 
-    let discriminator: [u8; 8] = {
-    
-        let h = hash::hash(b"global:try_release");
-        h.to_bytes()[..8].try_into().unwrap()
-    };
+    let discriminator: [u8; 8] = [
+        157,  79, 136, 120,
+         48, 191, 205,  90
+      ];
 
     let ix = Instruction {
         program_id: ctx.accounts.oracle_program.key(),

@@ -11,13 +11,13 @@ pub fn handler(ctx: Context<Approve>) -> Result<()> {
 
     // check signer is a valid approver
     require!(
-        guard.approved_signers.contains(&signer),
+        guard.approved_signers.contains(&signer.key()),
         GuardError::NotAnApprover
     );
 
     // check signer has not already voted
     require!(
-        !guard.approved_by.contains(&signer),
+        !guard.approved_by.contains(&signer.key()),
         GuardError::AlreadyApproved
     );
 

@@ -17,7 +17,7 @@ pub mod multisig_guard {
     use super::*;
 
     pub fn initialize_guard(
-        ctx: Context<initialize_guard::InitializeGuard>,
+        ctx: Context<InitializeGuard>,
         approved_signers: Vec<Pubkey>,
         required_approvals: u8,
     ) -> Result<()> {
@@ -25,13 +25,13 @@ pub mod multisig_guard {
     }
 
     pub fn approve(
-        ctx: Context<approve::Approve>,
+        ctx: Context<Approve>,
     ) -> Result<()> {
         approve::handler(ctx)
     }
 
     pub fn execute(
-        ctx: Context<execute::Execute>,
+        ctx: Context<Execute>,
     ) -> Result<()> {
         execute::handler(ctx)
     }
