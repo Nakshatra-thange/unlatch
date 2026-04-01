@@ -1,6 +1,11 @@
 import { Connection, Keypair, PublicKey, clusterApiUrl } from "@solana/web3.js";
 import fs from "fs";
-import { getAssociatedTokenAddress } from "@solana/spl-token";
+import {
+  createAccount,
+  createMint,
+  getAssociatedTokenAddress,
+  mintTo,
+} from "@solana/spl-token";
 import anchor from "@coral-xyz/anchor";
 import {
   createEscrow,
@@ -9,6 +14,7 @@ import {
   approve,
   execute,
   deriveAllPDAs,
+  useClusterProgramIds,
 } from "../sdk/dist/index.js";
 
 const { Wallet } = anchor;
@@ -17,7 +23,12 @@ async function main() {
   const secret = JSON.parse(
     fs.readFileSync("/Users/nakshatravijaythange/.config/solana/id.json", "utf-8")
   );
-  const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+  const cluster = process.env.UNLATCH_CLUSTER ?? "devnet";
+  const rpcUrl = cluster === "localnet"
+    ? "http://127.0.0.1:8899"
+    : clusterApiUrl("devnet");
+  const connection = new Connection(rpcUrl, "confirmed");
+  const programIds = useClusterProgramIds(cluster as "localnet" | "devnet");
 
   // your funded wallet
   const keypair  = Keypair.fromSecretKey(new Uint8Array(secret));
@@ -28,7 +39,25 @@ async function main() {
   const signer2 = Keypair.generate();
   const signer3 = Keypair.generate();
 
-  const mint = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
+  const mint = cluster === "localnet"
+    ? await createMint(connection, keypair, keypair.publicKey, null, 6)
+    : new PublicKey(
+        process.env.UNLATCH_MINT ?? "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+      );
+
+  if (cluster === "localnet") {
+    const depositorAta = await createAccount(connection, keypair, mint, keypair.publicKey);
+    await mintTo(connection, keypair, mint, depositorAta, keypair, 2_000_000);
+  }
+
+  console.log("cluster:", cluster);
+  console.log("rpc:", rpcUrl);
+  console.log("program ids:", {
+    escrowCore: programIds.escrowCoreProgram.toBase58(),
+    conditionOracle: programIds.conditionOracleProgram.toBase58(),
+    multisigGuard: programIds.multisigGuardProgram.toBase58(),
+  });
+  console.log("mint:", mint.toBase58());
 
   // step 1: set up the condition first to get release_authority
   // this address must be passed into createEscrow
