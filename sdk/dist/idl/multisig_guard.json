@@ -1,0 +1,328 @@
+{
+    "address": "BweWEmsS5txchdCRTgPLi31UNeS19rf4DpQnTDsubVLY",
+    "metadata": {
+        "name": "multisig_guard",
+        "version": "0.1.0",
+        "spec": "0.1.0",
+        "description": "Created with Anchor"
+    },
+    "instructions": [
+        {
+            "name": "approve",
+            "discriminator": [
+                69,
+                74,
+                217,
+                36,
+                115,
+                117,
+                97,
+                76
+            ],
+            "accounts": [
+                {
+                    "name": "approver",
+                    "signer": true
+                },
+                {
+                    "name": "guard_state",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    103,
+                                    117,
+                                    97,
+                                    114,
+                                    100
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "guard_state.condition_config",
+                                "account": "GuardState"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "execute",
+            "discriminator": [
+                130,
+                221,
+                242,
+                154,
+                13,
+                193,
+                189,
+                29
+            ],
+            "accounts": [
+                {
+                    "name": "cranker",
+                    "docs": [
+                        "cranker pays tx fee — anyone can call this once threshold is met"
+                    ],
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "guard_state",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    103,
+                                    117,
+                                    97,
+                                    114,
+                                    100
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "guard_state.condition_config",
+                                "account": "GuardState"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "condition_config"
+                },
+                {
+                    "name": "release_authority",
+                    "docs": [
+                        "seeds = [b\"release\", condition_config.key()] in oracle program"
+                    ]
+                },
+                {
+                    "name": "escrow_state",
+                    "writable": true
+                },
+                {
+                    "name": "vault",
+                    "writable": true
+                },
+                {
+                    "name": "depositor_ata",
+                    "writable": true
+                },
+                {
+                    "name": "oracle_program"
+                },
+                {
+                    "name": "escrow_core_program"
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "initialize_guard",
+            "discriminator": [
+                63,
+                189,
+                246,
+                157,
+                77,
+                125,
+                157,
+                142
+            ],
+            "accounts": [
+                {
+                    "name": "payer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "condition_config"
+                },
+                {
+                    "name": "oracle_program"
+                },
+                {
+                    "name": "guard_state",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    103,
+                                    117,
+                                    97,
+                                    114,
+                                    100
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "condition_config"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "approved_signers",
+                    "type": {
+                        "vec": "pubkey"
+                    }
+                },
+                {
+                    "name": "required_approvals",
+                    "type": "u8"
+                }
+            ]
+        }
+    ],
+    "accounts": [
+        {
+            "name": "GuardState",
+            "discriminator": [
+                23,
+                232,
+                95,
+                177,
+                15,
+                220,
+                133,
+                0
+            ]
+        }
+    ],
+    "errors": [
+        {
+            "code": 6000,
+            "name": "NotAnApprover",
+            "msg": "signer is not in the approved_signers list"
+        },
+        {
+            "code": 6001,
+            "name": "AlreadyApproved",
+            "msg": "this signer has already approved"
+        },
+        {
+            "code": 6002,
+            "name": "InsufficientApprovals",
+            "msg": "not enough approvals collected yet"
+        },
+        {
+            "code": 6003,
+            "name": "AlreadyExecuted",
+            "msg": "guard has already been executed"
+        },
+        {
+            "code": 6004,
+            "name": "EmptySignersList",
+            "msg": "approved_signers list cannot be empty"
+        },
+        {
+            "code": 6005,
+            "name": "InvalidThreshold",
+            "msg": "required_approvals cannot exceed number of signers"
+        },
+        {
+            "code": 6006,
+            "name": "TooManySigners",
+            "msg": "too many signers — max is 10"
+        }
+    ],
+    "types": [
+        {
+            "name": "GuardState",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "condition_config",
+                        "docs": [
+                            "the condition_config this guard wraps"
+                        ],
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "oracle_program",
+                        "docs": [
+                            "the oracle program that owns condition_config"
+                        ],
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "required_approvals",
+                        "docs": [
+                            "how many approvals are needed before execute fires"
+                        ],
+                        "type": "u8"
+                    },
+                    {
+                        "name": "approvals_collected",
+                        "docs": [
+                            "how many have been collected so far"
+                        ],
+                        "type": "u8"
+                    },
+                    {
+                        "name": "approved_signers",
+                        "docs": [
+                            "list of pubkeys that are valid approvers",
+                            "max 10 approvers"
+                        ],
+                        "type": {
+                            "vec": "pubkey"
+                        }
+                    },
+                    {
+                        "name": "approved_by",
+                        "docs": [
+                            "list of pubkeys that have already approved",
+                            "used to prevent duplicate votes"
+                        ],
+                        "type": {
+                            "vec": "pubkey"
+                        }
+                    },
+                    {
+                        "name": "is_executed",
+                        "docs": [
+                            "whether execute has already been called"
+                        ],
+                        "type": "bool"
+                    },
+                    {
+                        "name": "bump",
+                        "docs": [
+                            "bump for GuardState PDA",
+                            "seeds = [b\"guard\", condition_config.key()]"
+                        ],
+                        "type": "u8"
+                    }
+                ]
+            }
+        }
+    ],
+    "constants": [
+        {
+            "name": "SEED",
+            "type": "string",
+            "value": "\"anchor\""
+        }
+    ]
+}

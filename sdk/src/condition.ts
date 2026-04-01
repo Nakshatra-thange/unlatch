@@ -1,11 +1,20 @@
+import { readFileSync } from "fs";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
-import { AnchorProvider, Program, BN } from "@coral-xyz/anchor";
+import anchor from "@coral-xyz/anchor";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import type { ConditionOracle } from "./types/condition_oracle.js";
+import type {
+  PlugConditionParams,
+  PlugConditionResult,
+  TryReleaseParams,
+} from "./types.js";
+import { deriveConditionConfig, deriveReleaseAuthority } from "./pdas.js";
+import { makeProvider, CONDITION_ORACLE_PROGRAM_ID, ESCROW_CORE_PROGRAM_ID } from "./utils.js";
 
-import { PlugConditionParams, PlugConditionResult } from "./types";
-import { deriveConditionConfig, deriveReleaseAuthority } from "./pdas";
-import { makeProvider, CONDITION_ORACLE_PROGRAM_ID } from "./utils";
-
-import ConditionOracleIdl from "../../target/idl/condition_oracle.json";
+const { Program, BN } = anchor;
+const ConditionOracleIdl = JSON.parse(
+  readFileSync(new URL("./idl/condition_oracle.json", import.meta.url), "utf-8")
+);
 
 export async function plugCondition(
   params: PlugConditionParams
@@ -13,16 +22,14 @@ export async function plugCondition(
   const { connection, wallet, escrowState, condition } = params;
 
   const provider = makeProvider(connection, wallet);
-  const program  = new Program(
-    ConditionOracleIdl as any,
-    CONDITION_ORACLE_PROGRAM_ID,
+  const program  = new Program<ConditionOracle>(
+    ConditionOracleIdl as unknown as ConditionOracle,
     provider
   );
 
   const [conditionConfig]  = deriveConditionConfig(escrowState);
   const [releaseAuthority] = deriveReleaseAuthority(conditionConfig);
 
-  // build the params object matching the on-chain struct
   const conditionParams = condition.type === "timestamp"
     ? {
         conditionType:    { timestampAfter: {} },
@@ -43,7 +50,7 @@ export async function plugCondition(
       conditionConfig,
       releaseAuthority,
       systemProgram:    SystemProgram.programId,
-    })
+    }as any)
     .rpc();
 
   return { conditionConfig, releaseAuthority, txSignature };
@@ -53,11 +60,10 @@ export async function setResolved(
   connection: import("@solana/web3.js").Connection,
   wallet: import("@coral-xyz/anchor").Wallet,
   conditionConfig: PublicKey
-) {
+): Promise<string> {
   const provider = makeProvider(connection, wallet);
-  const program  = new Program(
-    ConditionOracleIdl as any,
-    CONDITION_ORACLE_PROGRAM_ID,
+  const program  = new Program<ConditionOracle>(
+    ConditionOracleIdl as unknown as ConditionOracle,
     provider
   );
 
@@ -66,25 +72,19 @@ export async function setResolved(
     .accounts({
       resolveAuthority: wallet.publicKey,
       conditionConfig,
-    })
+    }as any)
     .rpc();
 }
 
-export async function tryRelease(
-  params: import("./types").TryReleaseParams
-) {
+export async function tryRelease(params: TryReleaseParams): Promise<string> {
   const {
     connection, wallet, conditionConfig, releaseAuthority,
-    escrowState, vault, depositorAta, mint,
+    escrowState, vault, depositorAta,
   } = params;
 
-  const { TOKEN_PROGRAM_ID: SPL_TOKEN } = await import("@solana/spl-token");
-  const { ESCROW_CORE_PROGRAM_ID: escrowProgram } = await import("./utils");
-
   const provider = makeProvider(connection, wallet);
-  const program  = new Program(
-    ConditionOracleIdl as any,
-    CONDITION_ORACLE_PROGRAM_ID,
+  const program  = new Program<ConditionOracle>(
+    ConditionOracleIdl as unknown as ConditionOracle,
     provider
   );
 
@@ -97,9 +97,9 @@ export async function tryRelease(
       escrowState,
       vault,
       depositorAta,
-      escrowCoreProgram: escrowProgram,
-      tokenProgram:      SPL_TOKEN,
-    })
+      escrowCoreProgram: ESCROW_CORE_PROGRAM_ID,
+      tokenProgram:      TOKEN_PROGRAM_ID,
+    }as any)
     .rpc();
 }
 
@@ -109,9 +109,8 @@ export async function fetchConditionConfig(
   conditionConfig: PublicKey
 ) {
   const provider = makeProvider(connection, wallet);
-  const program  = new Program(
-    ConditionOracleIdl as any,
-    CONDITION_ORACLE_PROGRAM_ID,
+  const program  = new Program<ConditionOracle>(
+    ConditionOracleIdl as unknown as ConditionOracle,
     provider
   );
   return program.account.conditionConfig.fetch(conditionConfig);

@@ -1,5 +1,7 @@
-import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
-import { AnchorProvider, Wallet }              from "@coral-xyz/anchor";
+import { Connection, Keypair, PublicKey, clusterApiUrl } from "@solana/web3.js";
+import fs from "fs";
+import { getAssociatedTokenAddress } from "@solana/spl-token";
+import anchor from "@coral-xyz/anchor";
 import {
   createEscrow,
   plugCondition,
@@ -7,13 +9,18 @@ import {
   approve,
   execute,
   deriveAllPDAs,
-} from "@unlatch/sdk";
+} from "../sdk/dist/index.js";
+
+const { Wallet } = anchor;
 
 async function main() {
+  const secret = JSON.parse(
+    fs.readFileSync("/Users/nakshatravijaythange/.config/solana/id.json", "utf-8")
+  );
   const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
 
   // your funded wallet
-  const keypair  = Keypair.fromSecretKey(/* your key bytes */);
+  const keypair  = Keypair.fromSecretKey(new Uint8Array(secret));
   const wallet   = new Wallet(keypair);
 
   // three approvers for the 2-of-3 guard
@@ -21,7 +28,7 @@ async function main() {
   const signer2 = Keypair.generate();
   const signer3 = Keypair.generate();
 
-  const mint = /* your USDC devnet mint address */;
+  const mint = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 
   // step 1: set up the condition first to get release_authority
   // this address must be passed into createEscrow
@@ -68,7 +75,10 @@ async function main() {
 
   // step 5: execute — fires guard -> oracle -> escrow-core
   const { address: vault }        = deriveAllPDAs(keypair.publicKey, mint).vault;
-  const { address: depositorAta } = /* your ATA */;
+  const depositorAta = await getAssociatedTokenAddress(
+    mint,
+    keypair.publicKey
+  );
 
   const releaseTx = await execute({
     connection,

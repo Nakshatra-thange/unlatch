@@ -1,10 +1,12 @@
 import { PublicKey, Connection, Commitment } from "@solana/web3.js";
-import { AnchorProvider, Wallet, Program, Idl } from "@coral-xyz/anchor";
+import anchor from "@coral-xyz/anchor";
+import type { AnchorProvider as AnchorProviderType, Wallet } from "@coral-xyz/anchor";
 
-// replace with your deployed program IDs after anchor deploy
-export const ESCROW_CORE_PROGRAM_ID      = new PublicKey("YOUR_ESCROW_PROGRAM_ID");
-export const CONDITION_ORACLE_PROGRAM_ID = new PublicKey("YOUR_ORACLE_PROGRAM_ID");
-export const MULTISIG_GUARD_PROGRAM_ID   = new PublicKey("YOUR_GUARD_PROGRAM_ID");
+const { AnchorProvider } = anchor;
+
+export const ESCROW_CORE_PROGRAM_ID      = new PublicKey("Aeme3QvXEKEip5jNkfZTrjpTxXognZXvw2jPb7HuGMte");
+export const CONDITION_ORACLE_PROGRAM_ID = new PublicKey("BZgskKEwBsjoAYrW2yRoah4Aat2jKUgThXB8g6RJMoKx");
+export const MULTISIG_GUARD_PROGRAM_ID   = new PublicKey("AXUUG9hFsbPGsFnyKw7DSdqhsPXhTPZd68mkp51qMLMb");
 
 export const TOKEN_PROGRAM_ID = new PublicKey(
   "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
@@ -15,7 +17,7 @@ export function makeProvider(
   connection: Connection,
   wallet: Wallet,
   commitment: Commitment = "confirmed"
-): AnchorProvider {
+): AnchorProviderType {
   return new AnchorProvider(connection, wallet, { commitment });
 }
 

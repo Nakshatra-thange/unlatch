@@ -8,13 +8,15 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
-    "rootDir": ".",
     "ignoreDeprecations": "6.0",
     "allowJs": true,
     "outDir": "dist",
+    "rootDir": ".",
+  
+
     "paths": {
       "@coral-xyz/anchor": ["./node_modules/@coral-xyz/anchor"]
     }
   },
-  "include": ["tests/**/*", "target/types/**/*"]
+  "include": ["tests/**/*", "target/types/**/*", "sdk/src"]
 }

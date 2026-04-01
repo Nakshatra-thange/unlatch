@@ -1,15 +1,16 @@
+import { readFileSync } from "fs";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
-import { AnchorProvider, Program, BN } from "@coral-xyz/anchor";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import anchor from "@coral-xyz/anchor";
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import type { EscrowCore } from "./types/escrow_core.js";
+import type { CreateEscrowParams, CreateEscrowResult } from "./types.js";
+import { deriveEscrowState, deriveVault } from "./pdas.js";
+import { makeProvider, ESCROW_CORE_PROGRAM_ID } from "./utils.js";
 
-import {
-  CreateEscrowParams,
-  CreateEscrowResult,
-} from "./types";
-import { deriveEscrowState, deriveVault } from "./pdas";
-import { makeProvider, ESCROW_CORE_PROGRAM_ID } from "./utils";
-
-import EscrowCoreIdl from "../../target/idl/escrow_core.json";
+const { Program, BN } = anchor;
+const EscrowCoreIdl = JSON.parse(
+  readFileSync(new URL("./idl/escrow_core.json", import.meta.url), "utf-8")
+);
 
 export async function createEscrow(
   params: CreateEscrowParams
@@ -17,15 +18,14 @@ export async function createEscrow(
   const { connection, wallet, mint, amount, releaseAuthority } = params;
 
   const provider = makeProvider(connection, wallet);
-  const program  = new Program(EscrowCoreIdl as any, ESCROW_CORE_PROGRAM_ID, provider);
+  const program  = new Program<EscrowCore>(
+    EscrowCoreIdl as unknown as EscrowCore,
+    provider
+  );
 
   const [escrowState] = deriveEscrowState(wallet.publicKey, mint);
   const [vault]       = deriveVault(escrowState);
-
-  const depositorAta = await (async () => {
-    const { getAssociatedTokenAddress } = await import("@solana/spl-token");
-    return getAssociatedTokenAddress(mint, wallet.publicKey);
-  })();
+  const depositorAta  = await getAssociatedTokenAddress(mint, wallet.publicKey);
 
   const txSignature = await program.methods
     .deposit(new BN(amount.toString()), releaseAuthority)
@@ -37,7 +37,7 @@ export async function createEscrow(
       depositorAta,
       tokenProgram:  TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
-    })
+    }as any)
     .rpc();
 
   return { escrowState, vault, txSignature };
@@ -49,6 +49,9 @@ export async function fetchEscrowState(
   escrowState: PublicKey
 ) {
   const provider = makeProvider(connection, wallet);
-  const program  = new Program(EscrowCoreIdl as any, ESCROW_CORE_PROGRAM_ID, provider);
+  const program  = new Program<EscrowCore>(
+    EscrowCoreIdl as unknown as EscrowCore,
+    provider
+  );
   return program.account.escrowState.fetch(escrowState);
 }

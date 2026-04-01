@@ -1,5 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
-import { ESCROW_CORE_PROGRAM_ID, CONDITION_ORACLE_PROGRAM_ID, MULTISIG_GUARD_PROGRAM_ID } from "./utils";
+import { ESCROW_CORE_PROGRAM_ID, CONDITION_ORACLE_PROGRAM_ID, MULTISIG_GUARD_PROGRAM_ID } from "./utils.js";
 
 export function deriveEscrowState(
   depositor: PublicKey,
