@@ -8,6 +8,8 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
+    "rootDir": ".",
+    "ignoreDeprecations": "6.0",
     "allowJs": true,
     "outDir": "dist",
     "paths": {

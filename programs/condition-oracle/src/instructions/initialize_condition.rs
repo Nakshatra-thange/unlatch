@@ -42,13 +42,8 @@ pub fn handler(
     ctx: Context<InitializeCondition>,
     params: InitConditionParams,
 ) -> Result<()> {
-    // validate timestamp if that condition type is chosen
     if params.condition_type == ConditionType::TimestampAfter {
-        let now = Clock::get()?.unix_timestamp;
-        require!(
-            params.target_timestamp > now,
-            OracleError::InvalidTimestamp
-        );
+        require!(params.target_timestamp >= 0, OracleError::InvalidTimestamp);
     }
 
     let config = &mut ctx.accounts.condition_config;
