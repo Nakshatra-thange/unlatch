@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unlatch — dashboard</title>
+  <style>
+    :root {
+      --bg:      #0c0c0b;
+      --surface: #141413;
+      --border:  #2a2a27;
+      --text:    #e8e6df;
+      --muted:   #7a7870;
+      --accent:  #c8f97a;
+      --teal:    #4af0c4;
+      --coral:   #f97a5a;
+      --purple:  #a78bfa;
+      --mono:    'JetBrains Mono', monospace;
+      --sans:    'Inter', system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: 56px 1fr;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      gap: 16px;
+    }
+    .logo {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: .06em;
+    }
+    .header-tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: .06em;
+    }
+    main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      height: calc(100vh - 56px);
+      overflow: hidden;
+    }
+    .panel {
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel:last-child { border-right: none; }
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .panel-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    /* inputs */
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--muted); }
+    button {
+      background: var(--accent);
+      color: #0c0c0b;
+      border: none;
+      border-radius: 6px;
+      padding: 9px 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity .15s;
+    }
+    button:hover { opacity: .85; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    /* PDA tree */
+    .tree-node {
+      margin-bottom: 8px;
+    }
+    .tree-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: border-color .15s;
+    }
+    .tree-card:hover { border-color: var(--accent); }
+    .tree-card.oracle { border-left: 2px solid var(--teal); }
+    .tree-card.escrow { border-left: 2px solid var(--coral); }
+    .tree-card.guard  { border-left: 2px solid var(--purple); }
+    .tree-card.release { border-left: 2px solid var(--accent); }
+    .tree-card.vault  { border-left: 2px solid #f7c94a; }
+    .node-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+      letter-spacing: .04em;
+    }
+    .node-seeds {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .node-address {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--teal);
+      word-break: break-all;
+    }
+    .node-bump {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .tree-children {
+      margin-left: 24px;
+      margin-top: 6px;
+      border-left: 1px solid var(--border);
+      padding-left: 16px;
+    }
+    /* CPI trace */
+    .trace-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .trace-step:last-child { border-bottom: none; }
+    .trace-depth {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      min-width: 20px;
+      padding-top: 2px;
+    }
+    .trace-arrow {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding-top: 1px;
+    }
+    .trace-content { flex: 1; }
+    .trace-program {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .trace-ix {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .p-guard  { color: var(--purple); }
+    .p-oracle { color: var(--teal); }
+    .p-escrow { color: var(--coral); }
+    .p-other  { color: var(--muted); }
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+    .status {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 12px;
+    }
+    .status.error { color: var(--coral); }
+    .status.success { color: var(--accent); }
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .dot.guard  { background: var(--purple); }
+    .dot.oracle { background: var(--teal); }
+    .dot.escrow { background: var(--coral); }
+  </style>
+</head>
+<body>
+<header>
+  <span class="logo">UNLATCH</span>
+  <span class="header-tag">devnet dashboard</span>
+  <span class="header-tag">escrow-core · condition-oracle · multisig-guard</span>
+</header>
+
+<main>
+  <!-- LEFT: PDA derivation tree -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">PDA derivation tree</span>
+    </div>
+    <div class="panel-body">
+      <div class="input-row">
+        <input id="depositor-input" placeholder="depositor pubkey" />
+        <input id="mint-input"      placeholder="mint pubkey" />
+        <button onclick="loadTree()">derive</button>
+      </div>
+      <div id="tree-container">
+        <div class="empty-state">
+          enter a depositor address and mint<br>to see all PDA addresses and their seeds
+        </div>
+      </div>
+      <div id="tree-status" class="status"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: CPI trace -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">CPI call trace</span>
+    </div>
+    <div class="panel-body">
+      <div class="input-row">
+        <input id="sig-input" placeholder="transaction signature" />
+        <button onclick="loadTrace()">trace</button>
+      </div>
+      <div id="trace-container">
+        <div class="empty-state">
+          paste a transaction signature<br>to see the full CPI call stack<br><br>
+          <span style="color: var(--accent)">multisig-guard</span> →
+          <span style="color: var(--teal)">condition-oracle</span> →
+          <span style="color: var(--coral)">escrow-core</span>
+        </div>
+      </div>
+      <div id="trace-status" class="status"></div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { Connection, PublicKey } from "https://esm.sh/@solana/web3.js@1.95.3";
+
+// ---- program IDs — replace after anchor deploy ----
+const ESCROW_ID      = "YOUR_ESCROW_PROGRAM_ID";
+const ORACLE_ID      = "YOUR_ORACLE_PROGRAM_ID";
+const GUARD_ID       = "YOUR_GUARD_PROGRAM_ID";
+
+const PROGRAM_NAMES = {
+  [ESCROW_ID]:  { name: "escrow-core",      cls: "p-escrow" },
+  [ORACLE_ID]:  { name: "condition-oracle", cls: "p-oracle" },
+  [GUARD_ID]:   { name: "multisig-guard",   cls: "p-guard"  },
+};
+
+const connection = new Connection(
+  "https://api.devnet.solana.com",
+  "confirmed"
+);
+
+// ---- PDA derivation tree ----
+function derivePDA(seeds, programId) {
+  return PublicKey.findProgramAddressSync(seeds, new PublicKey(programId));
+}
+
+window.loadTree = async function () {
+  const depositorStr = document.getElementById("depositor-input").value.trim();
+  const mintStr      = document.getElementById("mint-input").value.trim();
+  const status       = document.getElementById("tree-status");
+  const container    = document.getElementById("tree-container");
+
+  status.className = "status";
+  status.textContent = "deriving PDAs...";
+
+  try {
+    const depositor = new PublicKey(depositorStr);
+    const mint      = new PublicKey(mintStr);
+
+    const [escrowState, escrowBump] = derivePDA(
+      [Buffer.from("escrow"), depositor.toBuffer(), mint.toBuffer()],
+      ESCROW_ID
+    );
+    const [vault, vaultBump] = derivePDA(
+      [Buffer.from("vault"), escrowState.toBuffer()],
+      ESCROW_ID
+    );
+    const [conditionConfig, condBump] = derivePDA(
+      [Buffer.from("condition"), escrowState.toBuffer()],
+      ORACLE_ID
+    );
+    const [releaseAuthority, relBump] = derivePDA(
+      [Buffer.from("release"), conditionConfig.toBuffer()],
+      ORACLE_ID
+    );
+    const [guardState, guardBump] = derivePDA(
+      [Buffer.from("guard"), conditionConfig.toBuffer()],
+      GUARD_ID
+    );
+
+    const nodes = [
+      {
+        label: "escrow_state",
+        seeds: '[b"escrow", depositor, mint]',
+        address: escrowState.toBase58(),
+        bump: escrowBump,
+        cls: "escrow",
+        children: [
+          {
+            label: "vault",
+            seeds: '[b"vault", escrow_state]',
+            address: vault.toBase58(),
+            bump: vaultBump,
+            cls: "vault",
+            children: [],
+          },
+        ],
+      },
+      {
+        label: "condition_config",
+        seeds: '[b"condition", escrow_state]',
+        address: conditionConfig.toBase58(),
+        bump: condBump,
+        cls: "oracle",
+        children: [
+          {
+            label: "release_authority",
+            seeds: '[b"release", condition_config]',
+            address: releaseAuthority.toBase58(),
+            bump: relBump,
+            cls: "release",
+            children: [],
+          },
+          {
+            label: "guard_state",
+            seeds: '[b"guard", condition_config]',
+            address: guardState.toBase58(),
+            bump: guardBump,
+            cls: "guard",
+            children: [],
+          },
+        ],
+      },
+    ];
+
+    container.innerHTML = nodes.map(renderNode).join("");
+    status.className = "status success";
+    status.textContent = "all PDAs derived from on-chain seeds — no RPC call needed";
+  } catch (e) {
+    status.className = "status error";
+    status.textContent = e.message;
+  }
+};
+
+function renderNode(node) {
+  const children = node.children.length
+    ? `<div class="tree-children">${node.children.map(renderNode).join("")}</div>`
+    : "";
+
+  return `
+    <div class="tree-node">
+      <div class="tree-card ${node.cls}"
+           onclick="navigator.clipboard.writeText('${node.address}')">
+        <div class="node-label">${node.label}</div>
+        <div class="node-seeds">${node.seeds}</div>
+        <div class="node-address">${node.address}</div>
+        <div class="node-bump">bump: ${node.bump}</div>
+      </div>
+      ${children}
+    </div>
+  `;
+}
+
+// ---- CPI trace ----
+window.loadTrace = async function () {
+  const sig       = document.getElementById("sig-input").value.trim();
+  const status    = document.getElementById("trace-status");
+  const container = document.getElementById("trace-container");
+
+  status.className = "status";
+  status.textContent = "fetching transaction...";
+  container.innerHTML = "";
+
+  try {
+    const tx = await connection.getParsedTransaction(sig, {
+      commitment: "confirmed",
+      maxSupportedTransactionVersion: 0,
+    });
+
+    if (!tx || !tx.meta) throw new Error("transaction not found");
+
+    const calls = [];
+
+    // top-level instruction
+    const outerAccounts = tx.transaction.message.accountKeys;
+    const outerProgramId = outerAccounts[
+      tx.transaction.message.instructions[0].programIdIndex
+    ]?.pubkey?.toBase58() ?? "";
+
+    calls.push({ depth: 0, programId: outerProgramId, ix: "entry call" });
+
+    // inner instructions (CPI calls)
+    if (tx.meta.innerInstructions) {
+      for (const inner of tx.meta.innerInstructions) {
+        for (const ix of inner.instructions) {
+          const programId = outerAccounts[ix.programIdIndex]?.pubkey?.toBase58() ?? "";
+          calls.push({ depth: 1, programId, ix: "CPI" });
+        }
+      }
+    }
+
+    if (calls.length === 0) {
+      container.innerHTML = `<div class="empty-state">no instructions found in this transaction</div>`;
+      status.textContent = "";
+      return;
+    }
+
+    container.innerHTML = calls.map((call, i) => {
+      const info = PROGRAM_NAMES[call.programId];
+      const name = info ? info.name : call.programId.slice(0, 16) + "...";
+      const cls  = info ? info.cls : "p-other";
+      const arrow = call.depth > 0
+        ? `<span class="trace-arrow">${"  ".repeat(call.depth)}↳</span>`
+        : "";
+
+      return `
+        <div class="trace-step">
+          <span class="trace-depth">${i + 1}</span>
+          ${arrow}
+          <div class="trace-content">
+            <div class="trace-program ${cls}">${name}</div>
+            <div class="trace-ix">${call.programId}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // check if it's the full 3-hop chain
+    const programIds = calls.map(c => c.programId);
+    const hasGuard  = programIds.includes(GUARD_ID);
+    const hasOracle = programIds.includes(ORACLE_ID);
+    const hasEscrow = programIds.includes(ESCROW_ID);
+
+    if (hasGuard && hasOracle && hasEscrow) {
+      status.className = "status success";
+      status.textContent =
+        "3-hop CPI chain detected: multisig-guard → condition-oracle → escrow-core";
+    } else {
+      status.className = "status";
+      status.textContent = `${calls.length} instruction(s) found`;
+    }
+  } catch (e) {
+    status.className = "status error";
+    status.textContent = e.message;
+  }
+};
+</script>
+</body>
+</html>
+
+
