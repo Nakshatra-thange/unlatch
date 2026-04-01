@@ -36,7 +36,7 @@ pub fn handler(
 }
 
 #[derive(Accounts)]
-#[instruction(approved_signers: Vec<Pubkey>, required_approvals: u8)]
+
 pub struct InitializeGuard<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,

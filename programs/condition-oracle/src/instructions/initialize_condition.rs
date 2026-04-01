@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::{InitConditionParams, InitializeCondition, ConditionType};
-use crate::error::OracleError;
+use crate::errors::OracleError;
 
 pub fn handler(
     ctx: Context<InitializeCondition>,

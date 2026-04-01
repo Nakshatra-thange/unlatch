@@ -8,7 +8,7 @@ pub mod state;
 
 use state::EscrowState;
 
-declare_id!("71e8gkv5oeQPmqfzH1686HDucs1Aq3xvJ7yjvQW9RZ9L");
+declare_id!("3BXJUR36foqaXawy5dQCPx1amq5yPzQSfPygjx4GSk3s");
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {

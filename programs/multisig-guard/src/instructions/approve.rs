@@ -4,20 +4,18 @@ use crate::state::GuardState;
 use crate::errors::GuardError;
 
 pub fn handler(ctx: Context<Approve>) -> Result<()> {
-    let guard   = &mut ctx.accounts.guard_state;
-    let signer  = ctx.accounts.approver.key();
+    let guard  = &mut ctx.accounts.guard_state;
+    let signer = ctx.accounts.approver.key();
 
     require!(!guard.is_executed, GuardError::AlreadyExecuted);
 
-    // check signer is a valid approver
     require!(
-        guard.approved_signers.contains(&signer.key()),
+        guard.approved_signers.contains(&signer),
         GuardError::NotAnApprover
     );
 
-    // check signer has not already voted
     require!(
-        !guard.approved_by.contains(&signer.key()),
+        !guard.approved_by.contains(&signer),
         GuardError::AlreadyApproved
     );
 

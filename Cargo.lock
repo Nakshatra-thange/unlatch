@@ -966,7 +966,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "multisig-guard"
+name = "multisig_guard"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",

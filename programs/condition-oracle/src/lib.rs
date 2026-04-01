@@ -1,17 +1,15 @@
-pub mod constants;
-pub mod error;
+use anchor_lang::prelude::*;
+
+pub mod errors;
 pub mod instructions;
 pub mod state;
 
-use anchor_lang::prelude::*;
-use anchor_spl::token::Token;
+use instructions::initialize_condition::{self, InitConditionParams};
+use instructions::set_resolved;
+use instructions::try_release;
 
-pub use constants::*;
-pub use state::*;
 
-use state::{ConditionConfig, ConditionType};
-
-declare_id!("3Rqj1SfSjQ2P2K4VVjmFwTzmJxMK4FAwi4o7J9uHxk9E");
+declare_id!("3crHL5VNeSDvFgpCYEEMUYCfUhrQHu2KBauAaU9qfbMG");
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct InitConditionParams {
@@ -65,43 +63,6 @@ pub struct SetResolved<'info> {
     pub condition_config: Account<'info, ConditionConfig>,
 }
 
-#[derive(Accounts)]
-pub struct TryRelease<'info> {
-    /// anyone can crank this — no privileged caller needed
-    #[account(mut)]
-    pub cranker: Signer<'info>,
-
-    #[account(
-        seeds = [b"condition", condition_config.escrow_state.as_ref()],
-        bump  = condition_config.bump,
-    )]
-    pub condition_config: Account<'info, ConditionConfig>,
-
-    /// the PDA that escrow-core recognizes as the release_authority
-    /// CHECK: PDA signer — seeds verified, no data
-    #[account(
-        seeds = [b"release", condition_config.key().as_ref()],
-        bump  = condition_config.release_bump,
-    )]
-    pub release_authority: AccountInfo<'info>,
-
-    /// CHECK: passed through to escrow-core CPI
-    #[account(mut)]
-    pub escrow_state: AccountInfo<'info>,
-
-    /// CHECK: passed through to escrow-core CPI
-    #[account(mut)]
-    pub vault: AccountInfo<'info>,
-
-    /// CHECK: passed through to escrow-core CPI
-    #[account(mut)]
-    pub depositor_ata: AccountInfo<'info>,
-
-    /// CHECK: escrow-core program address
-    pub escrow_core_program: AccountInfo<'info>,
-
-    pub token_program: Program<'info, Token>,
-}
 
 #[program]
 pub mod condition_oracle {
