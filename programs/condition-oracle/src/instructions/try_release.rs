@@ -1,9 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{
-    instruction::{AccountMeta, Instruction},
-    program::invoke_signed,
-};
-use anchor_lang::solana_program::keccak;
 
 use crate::state::{ConditionConfig, ConditionType};
 use crate::errors::OracleError;
@@ -31,33 +26,21 @@ pub fn handler(ctx: Context<TryRelease>) -> Result<()> {
     ];
     let signer_seeds = &[seeds];
 
-    // anchor discriminator = first 8 bytes of keccak256("global:release")
-    let hash = keccak::hash(b"global:release");
-    let discriminator: [u8; 8] = hash.0[..8].try_into().unwrap();
-
-    let ix = Instruction {
-        program_id: ctx.accounts.escrow_core_program.key(),
-        accounts: vec![
-            AccountMeta::new_readonly(ctx.accounts.release_authority.key(), true),
-            AccountMeta::new(ctx.accounts.escrow_state.key(), false),
-            AccountMeta::new(ctx.accounts.vault.key(), false),
-            AccountMeta::new(ctx.accounts.depositor_ata.key(), false),
-            AccountMeta::new_readonly(ctx.accounts.token_program.key(), false),
-        ],
-        data: discriminator.to_vec(),
+    let cpi_program = ctx.accounts.escrow_core_program.to_account_info();
+    let cpi_accounts = escrow_core::cpi::accounts::Release {
+        release_authority: ctx.accounts.release_authority.to_account_info(),
+        escrow_state: ctx.accounts.escrow_state.to_account_info(),
+        vault: ctx.accounts.vault.to_account_info(),
+        depositor_ata: ctx.accounts.depositor_ata.to_account_info(),
+        token_program: ctx.accounts.token_program.to_account_info(),
     };
-
-    invoke_signed(
-        &ix,
-        &[
-            ctx.accounts.release_authority.to_account_info(),
-            ctx.accounts.escrow_state.to_account_info(),
-            ctx.accounts.vault.to_account_info(),
-            ctx.accounts.depositor_ata.to_account_info(),
-            ctx.accounts.token_program.to_account_info(),
-        ],
+    let cpi_ctx = CpiContext::new_with_signer(
+        cpi_program,
+        cpi_accounts,
         signer_seeds,
-    )?;
+    );
+
+    escrow_core::cpi::release(cpi_ctx)?;
 
     msg!("escrow released via CPI");
     Ok(())

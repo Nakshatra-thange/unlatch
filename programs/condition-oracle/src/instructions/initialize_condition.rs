@@ -1,7 +1,42 @@
 use anchor_lang::prelude::*;
 
-use crate::{InitConditionParams, InitializeCondition, ConditionType};
+use crate::state::{ConditionConfig, ConditionType};
 use crate::errors::OracleError;
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct InitConditionParams {
+    pub condition_type: ConditionType,
+    pub target_timestamp: i64,
+    pub resolve_authority: Pubkey,
+}
+
+#[derive(Accounts)]
+pub struct InitializeCondition<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    /// CHECK: this is the escrow_state from escrow-core.
+    /// we only store its pubkey — no deserialization needed here.
+    pub escrow_state: AccountInfo<'info>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = ConditionConfig::LEN,
+        seeds = [b"condition", escrow_state.key().as_ref()],
+        bump,
+    )]
+    pub condition_config: Account<'info, ConditionConfig>,
+
+    /// CHECK: derived PDA, no data, used only as a signer in try_release
+    #[account(
+        seeds = [b"release", condition_config.key().as_ref()],
+        bump,
+    )]
+    pub release_authority: UncheckedAccount<'info>,
+
+    pub system_program: Program<'info, System>,
+}
 
 pub fn handler(
     ctx: Context<InitializeCondition>,
