@@ -1,149 +1,145 @@
-Unlatch - Programmable Escrow with Conditions & Multisig
+# Unlatch
 
-Unlatch is a modular, composable smart contract system on Solana that enables programmable escrow flows.
+Every escrow on Solana is monolithic. The vault, the release condition, 
+and the approval logic are all fused into one program. Want to change 
+the condition? Redeploy everything. Want M-of-N approval before the 
+condition fires? Write it from scratch and wire it in yourself.
 
-It allows funds to be locked and released based on:
+Unlatch splits these into three separate programs that compose via CPI.
 
-Time-based conditions
-Arbitrary logic (oracles, APIs, future ZK proofs)
-Multisig approvals (2-of-3, N-of-M, etc.)
+## The problem
 
-Core Idea - 
+When you build an escrow on Solana today, you make a choice:
 
-Traditional escrow is binary: lock → release
+**Option A** — trust a multisig of humans to manually release funds. 
+Someone has to be online. Social coordination is required. Nothing 
+is automatic.
 
-Unlatch turns it into: lock → condition → guard → release
+**Option B** — hardcode the release condition into the escrow program 
+itself. Works until requirements change. Then you redeploy, migrate 
+state, and hope nothing breaks.
 
-Architecture - 
-User → Multisig Guard → Condition Oracle → Escrow Core → Token Transfer
+Neither option lets you swap the condition without touching the vault. 
+Neither lets you add an approval layer without rewriting the core logic.
 
-1. Escrow Core
-Holds tokens securely in a PDA vault
-Stores: depositor , mint , release authority
-Handles: deposit , release
+## How Unlatch works
 
-No logic just safe custody
+Three programs, each with one job:
 
-2. Condition Oracle
-Determines when funds can be released
-Supports: timestamp conditions and manual resolution (admin / API / automation)
+**escrow-core** holds funds in a PDA vault. It has no opinion on what 
+condition releases the funds. The only instruction that moves tokens 
+out is `release`, and it only accepts calls from a specific address 
+stored at deposit time — no human can call it directly.
 
-Can be extended to:
-price feeds (Pyth, Switchboard)
-off-chain APIs
-ZK proofs
+**condition-oracle** evaluates a condition (a timestamp, a boolean 
+flag, or anything else you plug in). If the condition passes, it CPIs 
+into escrow-core's release instruction using a PDA as the signer. 
+escrow-core sees a valid signer from the right address and releases.
 
- 3. Multisig Guard
-Adds human consensus layer
-Supports: N-of-M approvals
-Prevents: unilateral release and malicious oracle triggers
+**multisig-guard** sits in front of the oracle. It collects M-of-N 
+approvals from a list of authorized signers. Once the threshold is met, 
+it CPIs into condition-oracle, which CPIs into escrow-core. The full 
+chain: guard → oracle → escrow-core.
 
-Execution Flow
+The guard is optional. You can run escrow-core + condition-oracle alone. 
+You can add the guard on top without changing either of the other two 
+programs.
 
-Create condition
-Deposit into escrow
-Attach multisig guard
-Collect approvals
-Execute release
+## The key insight
 
-Final execution (3-hop CPI)
-guard.execute()
- → oracle.try_release()
-   → escrow.release()
-   
-Project Structure
-programs/
-  escrow-core/        → token custody
-  condition-oracle/   → release logic
-  multisig-guard/     → approval layer
+The programs don't know about each other's internals. escrow-core stores 
+one pubkey — the release_authority — and rejects anything that doesn't 
+match. condition-oracle derives that pubkey as a PDA from its own 
+condition account and signs with it via invoke_signed. No shared state. 
+No shared imports. Just a PDA address stored in one program and derived 
+in another.
 
-sdk/
-  src/                → TS client for all programs
+This is what makes it composable. The vault is a dumb primitive. The 
+condition is a plugin. The guard is optional middleware.
 
-tests/
-  → full integration tests
+## Programs
 
-examples/
-  full-flow.ts        → real devnet execution
-  
-Setup
-1. Install dependencies - yarn install
-2. Install Solana + Anchor
-3. Build programs - anchor build
-4. Run tests - anchor test
-   
-Run Full Flow (Devnet)
-ts-node examples/full-flow.ts
+All three are deployed on Solana devnet.
 
-Wallet Setup
+| Program | Address |
+|---|---|
+| escrow-core | `3BXJUR36foqaXawy5dQCPx1amq5yPzQSfPygjx4GSk3s` |
+| condition-oracle | `3crHL5VNeSDvFgpCYEEMUYCfUhrQHu2KBauAaU9qfbMG` |
+| multisig-guard | `BweWEmsS5txchdCRTgPLi31UNeS19rf4DpQnTDsubVLY` |
 
-Uses your local Solana wallet: ~/.config/solana/id.json
+## SDK
 
-Example Use Cases
-Real Estate Escrow
-Funds released after legal verification + multisig approval
+import {
+  plugCondition,
+  createEscrow,
+  attachGuard,
+  approve,
+  execute,
+} from "@unlatch/sdk";
 
-Freelance Payments
-Client locks funds
-Released after milestone + approvals
+// initialize condition first — returns the release_authority address
+const { conditionConfig, releaseAuthority } = await plugCondition({
+  connection, wallet,
+  escrowState: pdas.escrowState.address,
+  condition: { type: "timestamp", targetTimestamp: unlockTime },
+});
 
-DAO Treasury
-Funds released after: proposal passes and multisig confirms
+// deposit — vault is now locked until condition fires
+const { escrowState, vault } = await createEscrow({
+  connection, wallet, mint,
+  amount: 1_000_000n,
+  releaseAuthority,
+});
 
-API-triggered Payments
-Example: “Release funds if shipment delivered”
+// optional — add M-of-N approval gate
+const { guardState } = await attachGuard({
+  connection, wallet, conditionConfig,
+  approvers: [signer1.publicKey, signer2.publicKey, signer3.publicKey],
+  requiredApprovals: 2,
+});
 
-Security Model
-Layer	Responsibility
-Escrow Core	funds safety
-Oracle	condition validation
-Guard	human consensus
+// collect approvals
+await approve({ connection, wallet, approver: signer1, guardState });
+await approve({ connection, wallet, approver: signer2, guardState });
 
-Defense-in-depth
-PDA-based vaults
-Explicit authority separation
-Multi-program isolation
-CPI-controlled execution
-
-Testing
-
-Includes:
-
-deposit correctness
-unauthorized release rejection
-multisig approval logic
-full 3-hop CPI execution
-
-SDK Located in: sdk/src/
-Provides:
-
-createEscrow()
-plugCondition()
-attachGuard()
-approve()
-execute()
-
-Example (SDK)
-
-await createEscrow({...});
-await plugCondition({...});
-await attachGuard({...});
-await approve({...});
-await execute({...});
-
-Future Roadmap
-Price oracle integration (Pyth / Switchboard)
-API-based conditions
-On-chain condition registry
-ZK condition proofs
-Token streaming support
-Frontend dashboard
-Contributing
+// fire — guard → oracle → escrow-core
+await execute({ connection, wallet, guardState, conditionConfig,
+  releaseAuthority, escrowState, vault, depositorAta, mint });
 
 
+## PDA scheme
 
-programmable money with conditions + consensus
+escrow_state  — seeds: ["escrow", depositor, mint]        — escrow-core
+vault         — seeds: ["vault", escrow_state]             — escrow-core
+condition     — seeds: ["condition", escrow_state]         — condition-oracle
+release_auth  — seeds: ["release", condition_config]       — condition-oracle
+guard         — seeds: ["guard", condition_config]         — multisig-guard
 
-Not just “lock funds”, but:
 
-👉 “define exactly when and how they unlock”
+The release_authority PDA is the link between programs. condition-oracle 
+derives it from its own account and signs with it. escrow-core checks 
+it against the address stored at deposit time. They never share code — 
+only a public key.
+
+## Devnet transaction
+
+3-hop CPI chain (guard → oracle → escrow-core): `[your tx signature]`
+
+## Running locally
+
+anchor build
+anchor test
+
+cd sdk && npm run build
+node examples/full-flow.ts
+
+
+## Adding a custom condition
+
+Create a new variant in condition-oracle's `ConditionType` enum. 
+Implement the check in `try_release.rs` inside the match block. 
+Redeploy condition-oracle. escrow-core and multisig-guard need no changes.
+
+## License
+
+MIT
