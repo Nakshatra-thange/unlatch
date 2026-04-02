@@ -3,13 +3,14 @@ import { SystemProgram } from "@solana/web3.js";
 import anchor from "@coral-xyz/anchor";
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { deriveEscrowState, deriveVault } from "./pdas.js";
-import { makeProvider } from "./utils.js";
+import { makeProvider, ESCROW_CORE_PROGRAM_ID } from "./utils.js";
 const { Program, BN } = anchor;
 const EscrowCoreIdl = JSON.parse(readFileSync(new URL("./idl/escrow_core.json", import.meta.url), "utf-8"));
 export async function createEscrow(params) {
     const { connection, wallet, mint, amount, releaseAuthority } = params;
     const provider = makeProvider(connection, wallet);
-    const program = new Program(EscrowCoreIdl, provider);
+    const programId = ESCROW_CORE_PROGRAM_ID();
+    const program = new Program({ ...EscrowCoreIdl, address: programId.toBase58() }, provider);
     const [escrowState] = deriveEscrowState(wallet.publicKey, mint);
     const [vault] = deriveVault(escrowState);
     const depositorAta = await getAssociatedTokenAddress(mint, wallet.publicKey);
@@ -29,6 +30,7 @@ export async function createEscrow(params) {
 }
 export async function fetchEscrowState(connection, wallet, escrowState) {
     const provider = makeProvider(connection, wallet);
-    const program = new Program(EscrowCoreIdl, provider);
+    const programId = ESCROW_CORE_PROGRAM_ID();
+    const program = new Program({ ...EscrowCoreIdl, address: programId.toBase58() }, provider);
     return program.account.escrowState.fetch(escrowState);
 }

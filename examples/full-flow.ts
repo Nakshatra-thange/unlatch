@@ -1,9 +1,16 @@
-import { Connection, Keypair, PublicKey, clusterApiUrl } from "@solana/web3.js";
+import { 
+  Connection, 
+  Keypair, 
+  PublicKey, 
+  clusterApiUrl, 
+  SystemProgram, 
+  Transaction, 
+  sendAndConfirmTransaction 
+} from "@solana/web3.js";
 import fs from "fs";
 import {
-  createAccount,
   createMint,
-  getAssociatedTokenAddress,
+  createAssociatedTokenAccount,
   mintTo,
 } from "@solana/spl-token";
 import anchor from "@coral-xyz/anchor";
@@ -23,91 +30,111 @@ async function main() {
   const secret = JSON.parse(
     fs.readFileSync("/Users/nakshatravijaythange/.config/solana/id.json", "utf-8")
   );
-  const cluster = process.env.UNLATCH_CLUSTER ?? "devnet";
-  const rpcUrl = cluster === "localnet"
+  const cluster = (process.env.UNLATCH_CLUSTER ?? "devnet") as "localnet" | "devnet";
+  const rpcUrl  = cluster === "localnet"
     ? "http://127.0.0.1:8899"
     : clusterApiUrl("devnet");
+
   const connection = new Connection(rpcUrl, "confirmed");
-  const programIds = useClusterProgramIds(cluster as "localnet" | "devnet");
+  const programIds = useClusterProgramIds(cluster);
+  const keypair    = Keypair.fromSecretKey(new Uint8Array(secret));
+  const wallet     = new Wallet(keypair);
 
-  // your funded wallet
-  const keypair  = Keypair.fromSecretKey(new Uint8Array(secret));
-  const wallet   = new Wallet(keypair);
-
-  // three approvers for the 2-of-3 guard
+  // Randomly generated signers for the 2-of-3 multisig
   const signer1 = Keypair.generate();
   const signer2 = Keypair.generate();
   const signer3 = Keypair.generate();
 
-  const mint = cluster === "localnet"
-    ? await createMint(connection, keypair, keypair.publicKey, null, 6)
-    : new PublicKey(
-        process.env.UNLATCH_MINT ?? "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
-      );
+  console.log("creating fresh mint...");
+  const mint = await createMint(
+    connection,
+    keypair,           
+    keypair.publicKey, 
+    null,
+    6
+  );
+  console.log("mint:", mint.toBase58());
 
-  if (cluster === "localnet") {
-    const depositorAta = await createAccount(connection, keypair, mint, keypair.publicKey);
-    await mintTo(connection, keypair, mint, depositorAta, keypair, 2_000_000);
-  }
+  console.log("creating depositor ATA...");
+  const depositorAta = await createAssociatedTokenAccount(
+    connection,
+    keypair,
+    mint,
+    keypair.publicKey
+  );
+  console.log("depositorAta:", depositorAta.toBase58());
+
+  console.log("minting tokens...");
+  await mintTo(
+    connection,
+    keypair,
+    mint,
+    depositorAta,
+    keypair,
+    5_000_000  
+  );
+  console.log("funded\n");
 
   console.log("cluster:", cluster);
   console.log("rpc:", rpcUrl);
-  console.log("program ids:", {
-    escrowCore: programIds.escrowCoreProgram.toBase58(),
-    conditionOracle: programIds.conditionOracleProgram.toBase58(),
-    multisigGuard: programIds.multisigGuardProgram.toBase58(),
-  });
-  console.log("mint:", mint.toBase58());
 
-  // step 1: set up the condition first to get release_authority
-  // this address must be passed into createEscrow
+  const pdas = deriveAllPDAs(keypair.publicKey, mint);
+
+  console.log("initializing condition...");
   const { conditionConfig, releaseAuthority, txSignature: condTx } =
     await plugCondition({
       connection,
       wallet,
-      escrowState: deriveAllPDAs(keypair.publicKey, mint).escrowState.address,
+      escrowState: pdas.escrowState.address,
       condition: {
-        type: "timestamp",
-        targetTimestamp: Math.floor(Date.now() / 1000) + 300, // 5 minutes
+        type:            "timestamp",
+        targetTimestamp: Math.floor(Date.now() / 1000) - 60,
       },
     });
-
   console.log("condition initialized:", condTx);
 
-  // step 2: deposit — vault is locked until condition fires
+  console.log("depositing into escrow...");
   const { escrowState, txSignature: depositTx } = await createEscrow({
     connection,
     wallet,
     mint,
-    amount: 1_000_000n, // 1 USDC
+    amount:           1_000_000n,
     releaseAuthority,
   });
+  console.log("deposited:", depositTx);
 
-  console.log("deposited into escrow:", depositTx);
-
-  // step 3: attach a 2-of-3 multisig guard in front of the condition
+  console.log("attaching guard...");
   const { guardState, txSignature: guardTx } = await attachGuard({
     connection,
     wallet,
     conditionConfig,
-    approvers: [signer1.publicKey, signer2.publicKey, signer3.publicKey],
+    approvers:         [signer1.publicKey, signer2.publicKey, signer3.publicKey],
     requiredApprovals: 2,
   });
-
   console.log("guard attached:", guardTx);
 
-  // step 4: collect approvals
+  // --- FIX START: TRANSFER SOL INSTEAD OF AIRDROP ---
+  console.log("funding signers from main wallet...");
+  for (const kp of [signer1, signer2]) {
+    const transaction = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: keypair.publicKey,
+        toPubkey: kp.publicKey,
+        lamports: 50_000_000, // 0.05 SOL is plenty for transaction fees
+      })
+    );
+    await sendAndConfirmTransaction(connection, transaction, [keypair]);
+    console.log(`Funded ${kp.publicKey.toBase58()} with 0.05 SOL`);
+  }
+  // --- FIX END ---
+
+  console.log("collecting approvals...");
   await approve({ connection, wallet, approver: signer1, guardState });
   await approve({ connection, wallet, approver: signer2, guardState });
-
   console.log("2-of-3 approvals collected");
 
-  // step 5: execute — fires guard -> oracle -> escrow-core
-  const { address: vault }        = deriveAllPDAs(keypair.publicKey, mint).vault;
-  const depositorAta = await getAssociatedTokenAddress(
-    mint,
-    keypair.publicKey
-  );
+  console.log("executing...");
+  const vault = pdas.vault.address;
 
   const releaseTx = await execute({
     connection,
@@ -121,7 +148,7 @@ async function main() {
     mint,
   });
 
-  console.log("3-hop CPI chain executed:", releaseTx);
+  console.log("\n3-hop CPI chain executed:", releaseTx);
   console.log("funds released — escrow complete");
 }
 

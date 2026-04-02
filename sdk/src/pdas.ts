@@ -1,5 +1,9 @@
 import { PublicKey } from "@solana/web3.js";
-import { ESCROW_CORE_PROGRAM_ID, CONDITION_ORACLE_PROGRAM_ID, MULTISIG_GUARD_PROGRAM_ID } from "./utils.js";
+import {
+  ESCROW_CORE_PROGRAM_ID,
+  CONDITION_ORACLE_PROGRAM_ID,
+  MULTISIG_GUARD_PROGRAM_ID,
+} from "./utils.js";
 
 export function deriveEscrowState(
   depositor: PublicKey,
@@ -11,7 +15,7 @@ export function deriveEscrowState(
       depositor.toBuffer(),
       mint.toBuffer(),
     ],
-    ESCROW_CORE_PROGRAM_ID
+    ESCROW_CORE_PROGRAM_ID()
   );
 }
 
@@ -20,7 +24,7 @@ export function deriveVault(
 ): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("vault"), escrowState.toBuffer()],
-    ESCROW_CORE_PROGRAM_ID
+    ESCROW_CORE_PROGRAM_ID()
   );
 }
 
@@ -29,7 +33,7 @@ export function deriveConditionConfig(
 ): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("condition"), escrowState.toBuffer()],
-    CONDITION_ORACLE_PROGRAM_ID
+    CONDITION_ORACLE_PROGRAM_ID()
   );
 }
 
@@ -38,7 +42,7 @@ export function deriveReleaseAuthority(
 ): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("release"), conditionConfig.toBuffer()],
-    CONDITION_ORACLE_PROGRAM_ID
+    CONDITION_ORACLE_PROGRAM_ID()
   );
 }
 
@@ -47,7 +51,7 @@ export function deriveGuardState(
 ): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("guard"), conditionConfig.toBuffer()],
-    MULTISIG_GUARD_PROGRAM_ID
+    MULTISIG_GUARD_PROGRAM_ID()
   );
 }
 

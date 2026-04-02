@@ -22,8 +22,9 @@ export async function plugCondition(
   const { connection, wallet, escrowState, condition } = params;
 
   const provider = makeProvider(connection, wallet);
+  const programId = CONDITION_ORACLE_PROGRAM_ID();
   const program  = new Program<ConditionOracle>(
-    ConditionOracleIdl as unknown as ConditionOracle,
+    { ...ConditionOracleIdl, address: programId.toBase58() } as unknown as ConditionOracle,
     provider
   );
 
@@ -62,8 +63,9 @@ export async function setResolved(
   conditionConfig: PublicKey
 ): Promise<string> {
   const provider = makeProvider(connection, wallet);
+  const programId = CONDITION_ORACLE_PROGRAM_ID();
   const program  = new Program<ConditionOracle>(
-    ConditionOracleIdl as unknown as ConditionOracle,
+    { ...ConditionOracleIdl, address: programId.toBase58() } as unknown as ConditionOracle,
     provider
   );
 
@@ -83,8 +85,9 @@ export async function tryRelease(params: TryReleaseParams): Promise<string> {
   } = params;
 
   const provider = makeProvider(connection, wallet);
+  const programId = CONDITION_ORACLE_PROGRAM_ID();
   const program  = new Program<ConditionOracle>(
-    ConditionOracleIdl as unknown as ConditionOracle,
+    { ...ConditionOracleIdl, address: programId.toBase58() } as unknown as ConditionOracle,
     provider
   );
 
@@ -97,7 +100,7 @@ export async function tryRelease(params: TryReleaseParams): Promise<string> {
       escrowState,
       vault,
       depositorAta,
-      escrowCoreProgram: ESCROW_CORE_PROGRAM_ID,
+      escrowCoreProgram: ESCROW_CORE_PROGRAM_ID(),
       tokenProgram:      TOKEN_PROGRAM_ID,
     }as any)
     .rpc();
@@ -109,8 +112,9 @@ export async function fetchConditionConfig(
   conditionConfig: PublicKey
 ) {
   const provider = makeProvider(connection, wallet);
+  const programId = CONDITION_ORACLE_PROGRAM_ID();
   const program  = new Program<ConditionOracle>(
-    ConditionOracleIdl as unknown as ConditionOracle,
+    { ...ConditionOracleIdl, address: programId.toBase58() } as unknown as ConditionOracle,
     provider
   );
   return program.account.conditionConfig.fetch(conditionConfig);

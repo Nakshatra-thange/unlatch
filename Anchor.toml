@@ -6,26 +6,34 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-condition_oracle = "BZgskKEwBsjoAYrW2yRoah4Aat2jKUgThXB8g6RJMoKx"
-escrow_core = "Aeme3QvXEKEip5jNkfZTrjpTxXognZXvw2jPb7HuGMte"
-multisig_guard = "AXUUG9hFsbPGsFnyKw7DSdqhsPXhTPZd68mkp51qMLMb"
+escrow_core      = "3BXJUR36foqaXawy5dQCPx1amq5yPzQSfPygjx4GSk3s"
+condition_oracle = "3crHL5VNeSDvFgpCYEEMUYCfUhrQHu2KBauAaU9qfbMG"
+multisig_guard   = "BweWEmsS5txchdCRTgPLi31UNeS19rf4DpQnTDsubVLY"
 
 [programs.localnet]
+escrow_core      = "3BXJUR36foqaXawy5dQCPx1amq5yPzQSfPygjx4GSk3s"
 condition_oracle = "3crHL5VNeSDvFgpCYEEMUYCfUhrQHu2KBauAaU9qfbMG"
-escrow_core = "3BXJUR36foqaXawy5dQCPx1amq5yPzQSfPygjx4GSk3s"
-multisig_guard = "BweWEmsS5txchdCRTgPLi31UNeS19rf4DpQnTDsubVLY"
+multisig_guard   = "BweWEmsS5txchdCRTgPLi31UNeS19rf4DpQnTDsubVLY"
+
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
-wallet = "~/.config/solana/id.json"
+cluster = "devnet"
+wallet =  "/Users/nakshatravijaythange/.config/solana/id.json"
 
 [scripts]
 test = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
 [test]
 startup_wait = 20000
+
+[workspace]
+members = [
+  "programs/escrow-core",
+  "programs/condition-oracle",
+  "programs/multisig-guard",
+]
 
 [hooks]

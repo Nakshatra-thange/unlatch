@@ -18,8 +18,9 @@ export async function createEscrow(
   const { connection, wallet, mint, amount, releaseAuthority } = params;
 
   const provider = makeProvider(connection, wallet);
+  const programId = ESCROW_CORE_PROGRAM_ID();
   const program  = new Program<EscrowCore>(
-    EscrowCoreIdl as unknown as EscrowCore,
+    { ...EscrowCoreIdl, address: programId.toBase58() } as unknown as EscrowCore,
     provider
   );
 
@@ -49,8 +50,9 @@ export async function fetchEscrowState(
   escrowState: PublicKey
 ) {
   const provider = makeProvider(connection, wallet);
+  const programId = ESCROW_CORE_PROGRAM_ID();
   const program  = new Program<EscrowCore>(
-    EscrowCoreIdl as unknown as EscrowCore,
+    { ...EscrowCoreIdl, address: programId.toBase58() } as unknown as EscrowCore,
     provider
   );
   return program.account.escrowState.fetch(escrowState);

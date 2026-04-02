@@ -7,4 +7,8 @@ export {
   ESCROW_CORE_PROGRAM_ID,
   CONDITION_ORACLE_PROGRAM_ID,
   MULTISIG_GUARD_PROGRAM_ID,
+  getBuiltinProgramIds,
+  getProgramIds,
+  setProgramIds,
+  useClusterProgramIds,
 } from "./utils.js";

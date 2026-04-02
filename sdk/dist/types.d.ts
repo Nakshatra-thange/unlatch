@@ -73,3 +73,4 @@ export interface UnlatchConfig {
     conditionOracleProgram: PublicKey;
     multisigGuardProgram: PublicKey;
 }
+export type UnlatchCluster = "localnet" | "devnet";

@@ -1,12 +1,79 @@
 import { PublicKey, Connection, Commitment } from "@solana/web3.js";
 import anchor from "@coral-xyz/anchor";
 import type { AnchorProvider as AnchorProviderType, Wallet } from "@coral-xyz/anchor";
+import type { UnlatchCluster, UnlatchConfig } from "./types.js";
 
 const { AnchorProvider } = anchor;
 
-export const ESCROW_CORE_PROGRAM_ID      = new PublicKey("Aeme3QvXEKEip5jNkfZTrjpTxXognZXvw2jPb7HuGMte");
-export const CONDITION_ORACLE_PROGRAM_ID = new PublicKey("BZgskKEwBsjoAYrW2yRoah4Aat2jKUgThXB8g6RJMoKx");
-export const MULTISIG_GUARD_PROGRAM_ID   = new PublicKey("AXUUG9hFsbPGsFnyKw7DSdqhsPXhTPZd68mkp51qMLMb");
+const BUILTIN_PROGRAM_IDS: Record<UnlatchCluster, UnlatchConfig> = {
+  devnet: {
+    escrowCoreProgram:      new PublicKey("3BXJUR36foqaXawy5dQCPx1amq5yPzQSfPygjx4GSk3s"),
+    conditionOracleProgram: new PublicKey("3crHL5VNeSDvFgpCYEEMUYCfUhrQHu2KBauAaU9qfbMG"),
+    multisigGuardProgram:   new PublicKey("BweWEmsS5txchdCRTgPLi31UNeS19rf4DpQnTDsubVLY"),
+},
+  localnet: {
+    escrowCoreProgram: new PublicKey("3BXJUR36foqaXawy5dQCPx1amq5yPzQSfPygjx4GSk3s"),
+    conditionOracleProgram: new PublicKey("3crHL5VNeSDvFgpCYEEMUYCfUhrQHu2KBauAaU9qfbMG"),
+    multisigGuardProgram: new PublicKey("BweWEmsS5txchdCRTgPLi31UNeS19rf4DpQnTDsubVLY"),
+  },
+};
+
+function envProgramIds(): Partial<UnlatchConfig> {
+  const {
+    UNLATCH_ESCROW_CORE_PROGRAM_ID,
+    UNLATCH_CONDITION_ORACLE_PROGRAM_ID,
+    UNLATCH_MULTISIG_GUARD_PROGRAM_ID,
+  } = process.env;
+
+  return {
+    escrowCoreProgram: UNLATCH_ESCROW_CORE_PROGRAM_ID
+      ? new PublicKey(UNLATCH_ESCROW_CORE_PROGRAM_ID)
+      : undefined,
+    conditionOracleProgram: UNLATCH_CONDITION_ORACLE_PROGRAM_ID
+      ? new PublicKey(UNLATCH_CONDITION_ORACLE_PROGRAM_ID)
+      : undefined,
+    multisigGuardProgram: UNLATCH_MULTISIG_GUARD_PROGRAM_ID
+      ? new PublicKey(UNLATCH_MULTISIG_GUARD_PROGRAM_ID)
+      : undefined,
+  };
+}
+
+function resolveProgramIds(cluster: UnlatchCluster): UnlatchConfig {
+  const base = BUILTIN_PROGRAM_IDS[cluster];
+  const env = envProgramIds();
+
+  return {
+    escrowCoreProgram: env.escrowCoreProgram ?? base.escrowCoreProgram,
+    conditionOracleProgram: env.conditionOracleProgram ?? base.conditionOracleProgram,
+    multisigGuardProgram: env.multisigGuardProgram ?? base.multisigGuardProgram,
+  };
+}
+
+let activeProgramIds: UnlatchConfig = resolveProgramIds(
+  (process.env.UNLATCH_CLUSTER as UnlatchCluster | undefined) ?? "devnet"
+);
+
+export function getBuiltinProgramIds(cluster: UnlatchCluster): UnlatchConfig {
+  return BUILTIN_PROGRAM_IDS[cluster];
+}
+
+export function setProgramIds(config: UnlatchConfig): void {
+  activeProgramIds = config;
+}
+
+export function getProgramIds(): UnlatchConfig {
+  return activeProgramIds;
+}
+
+export function useClusterProgramIds(cluster: UnlatchCluster): UnlatchConfig {
+  const config = resolveProgramIds(cluster);
+  setProgramIds(config);
+  return config;
+}
+
+export const ESCROW_CORE_PROGRAM_ID = () => getProgramIds().escrowCoreProgram;
+export const CONDITION_ORACLE_PROGRAM_ID = () => getProgramIds().conditionOracleProgram;
+export const MULTISIG_GUARD_PROGRAM_ID = () => getProgramIds().multisigGuardProgram;
 
 export const TOKEN_PROGRAM_ID = new PublicKey(
   "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"

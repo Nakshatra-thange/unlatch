@@ -28,8 +28,9 @@ export async function attachGuard(
   const { connection, wallet, conditionConfig, approvers, requiredApprovals } = params;
 
   const provider  = makeProvider(connection, wallet);
+  const programId = MULTISIG_GUARD_PROGRAM_ID();
   const program   = new Program<MultisigGuard>(
-    MultisigGuardIdl as unknown as MultisigGuard,
+    { ...MultisigGuardIdl, address: programId.toBase58() } as unknown as MultisigGuard,
     provider
   );
   const [guardState] = deriveGuardState(conditionConfig);
@@ -39,7 +40,7 @@ export async function attachGuard(
     .accounts({
       payer:          wallet.publicKey,
       conditionConfig,
-      oracleProgram:  CONDITION_ORACLE_PROGRAM_ID,
+      oracleProgram:  CONDITION_ORACLE_PROGRAM_ID(),
       guardState,
       systemProgram:  SystemProgram.programId,
     }as any)
@@ -52,8 +53,9 @@ export async function approve(params: ApproveParams): Promise<string> {
   const { connection, wallet, approver, guardState } = params;
 
   const provider = makeProvider(connection, wallet);
+  const programId = MULTISIG_GUARD_PROGRAM_ID();
   const program  = new Program<MultisigGuard>(
-    MultisigGuardIdl as unknown as MultisigGuard,
+    { ...MultisigGuardIdl, address: programId.toBase58() } as unknown as MultisigGuard,
     provider
   );
 
@@ -74,8 +76,9 @@ export async function execute(params: ExecuteParams): Promise<string> {
   } = params;
 
   const provider = makeProvider(connection, wallet);
+  const programId = MULTISIG_GUARD_PROGRAM_ID();
   const program  = new Program<MultisigGuard>(
-    MultisigGuardIdl as unknown as MultisigGuard,
+    { ...MultisigGuardIdl, address: programId.toBase58() } as unknown as MultisigGuard,
     provider
   );
 
@@ -89,8 +92,8 @@ export async function execute(params: ExecuteParams): Promise<string> {
       escrowState,
       vault,
       depositorAta,
-      oracleProgram:     CONDITION_ORACLE_PROGRAM_ID,
-      escrowCoreProgram: ESCROW_CORE_PROGRAM_ID,
+      oracleProgram:     CONDITION_ORACLE_PROGRAM_ID(),
+      escrowCoreProgram: ESCROW_CORE_PROGRAM_ID(),
       tokenProgram:      TOKEN_PROGRAM_ID,
     }as any)
     .rpc();
@@ -102,8 +105,9 @@ export async function fetchGuardState(
   guardState: PublicKey
 ) {
   const provider = makeProvider(connection, wallet);
+  const programId = MULTISIG_GUARD_PROGRAM_ID();
   const program  = new Program<MultisigGuard>(
-    MultisigGuardIdl as unknown as MultisigGuard,
+    { ...MultisigGuardIdl, address: programId.toBase58() } as unknown as MultisigGuard,
     provider
   );
   return program.account.guardState.fetch(guardState);

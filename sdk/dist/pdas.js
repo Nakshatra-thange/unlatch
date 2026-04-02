@@ -1,23 +1,23 @@
 import { PublicKey } from "@solana/web3.js";
-import { ESCROW_CORE_PROGRAM_ID, CONDITION_ORACLE_PROGRAM_ID, MULTISIG_GUARD_PROGRAM_ID } from "./utils.js";
+import { ESCROW_CORE_PROGRAM_ID, CONDITION_ORACLE_PROGRAM_ID, MULTISIG_GUARD_PROGRAM_ID, } from "./utils.js";
 export function deriveEscrowState(depositor, mint) {
     return PublicKey.findProgramAddressSync([
         Buffer.from("escrow"),
         depositor.toBuffer(),
         mint.toBuffer(),
-    ], ESCROW_CORE_PROGRAM_ID);
+    ], ESCROW_CORE_PROGRAM_ID());
 }
 export function deriveVault(escrowState) {
-    return PublicKey.findProgramAddressSync([Buffer.from("vault"), escrowState.toBuffer()], ESCROW_CORE_PROGRAM_ID);
+    return PublicKey.findProgramAddressSync([Buffer.from("vault"), escrowState.toBuffer()], ESCROW_CORE_PROGRAM_ID());
 }
 export function deriveConditionConfig(escrowState) {
-    return PublicKey.findProgramAddressSync([Buffer.from("condition"), escrowState.toBuffer()], CONDITION_ORACLE_PROGRAM_ID);
+    return PublicKey.findProgramAddressSync([Buffer.from("condition"), escrowState.toBuffer()], CONDITION_ORACLE_PROGRAM_ID());
 }
 export function deriveReleaseAuthority(conditionConfig) {
-    return PublicKey.findProgramAddressSync([Buffer.from("release"), conditionConfig.toBuffer()], CONDITION_ORACLE_PROGRAM_ID);
+    return PublicKey.findProgramAddressSync([Buffer.from("release"), conditionConfig.toBuffer()], CONDITION_ORACLE_PROGRAM_ID());
 }
 export function deriveGuardState(conditionConfig) {
-    return PublicKey.findProgramAddressSync([Buffer.from("guard"), conditionConfig.toBuffer()], MULTISIG_GUARD_PROGRAM_ID);
+    return PublicKey.findProgramAddressSync([Buffer.from("guard"), conditionConfig.toBuffer()], MULTISIG_GUARD_PROGRAM_ID());
 }
 // returns all PDAs for a given depositor + mint in one call
 // useful for the dashboard

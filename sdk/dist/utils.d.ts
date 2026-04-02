@@ -1,8 +1,13 @@
 import { PublicKey, Connection, Commitment } from "@solana/web3.js";
 import type { AnchorProvider as AnchorProviderType, Wallet } from "@coral-xyz/anchor";
-export declare const ESCROW_CORE_PROGRAM_ID: PublicKey;
-export declare const CONDITION_ORACLE_PROGRAM_ID: PublicKey;
-export declare const MULTISIG_GUARD_PROGRAM_ID: PublicKey;
+import type { UnlatchCluster, UnlatchConfig } from "./types.js";
+export declare function getBuiltinProgramIds(cluster: UnlatchCluster): UnlatchConfig;
+export declare function setProgramIds(config: UnlatchConfig): void;
+export declare function getProgramIds(): UnlatchConfig;
+export declare function useClusterProgramIds(cluster: UnlatchCluster): UnlatchConfig;
+export declare const ESCROW_CORE_PROGRAM_ID: () => PublicKey;
+export declare const CONDITION_ORACLE_PROGRAM_ID: () => PublicKey;
+export declare const MULTISIG_GUARD_PROGRAM_ID: () => PublicKey;
 export declare const TOKEN_PROGRAM_ID: PublicKey;
 export declare const SYSTEM_PROGRAM_ID: PublicKey;
 export declare function makeProvider(connection: Connection, wallet: Wallet, commitment?: Commitment): AnchorProviderType;
